@@ -4,6 +4,7 @@ import org.parabot.environment.api.utils.Time;
 import org.parabot.environment.scripts.Category;
 import org.parabot.environment.scripts.Script;
 import org.parabot.environment.scripts.ScriptManifest;
+import org.parabot.environment.scripts.framework.SleepCondition;
 import org.parabot.environment.scripts.framework.Strategy;
 import org.rev377.min.api.methods.*;
 import org.rev377.min.api.wrappers.GroundItem;
@@ -17,15 +18,14 @@ public class BSCrabber extends Script {
 	private final int[] food = { 386 };
 	private final int[] loot = { 995, 2773, 2774, 2775 };
 	private final int[] scrolls = { 2774, 2774, 2775 };
-	public int scrollsFound = 0;
 
 	private final ArrayList<Strategy> strategy = new ArrayList<Strategy>();
 
 	@Override
 	public boolean onExecute() {
-		strategy.add(new attack());
-		strategy.add(new eat());
-		strategy.add(new loot());
+		strategy.add(new Attack());
+		strategy.add(new Eat());
+		strategy.add(new Loot());
 		strategy.add(new clickScroll());
 		provide(strategy);
 
@@ -41,22 +41,26 @@ public class BSCrabber extends Script {
 		}
 
 		public void execute() {
-			for (final Item s : Inventory.getItems(scrolls)) {
-				Menu.sendAction(961, 2773, s.getSlot(), 4521985);
-				Time.sleep(500);
-				Menu.sendAction(961, 2774, s.getSlot(), 4521985);
-				Time.sleep(500);
-				Menu.sendAction(961, 2775, s.getSlot(), 4521985);
-				Time.sleep(500);
-				scrollsFound++;
+			for (int s = 0; s < Inventory.getItems(scrolls).length; s++) {
+				Menu.sendAction(961, 2773,
+						Inventory.getItems(scrolls)[s].getSlot(), 4521985);
+				Menu.sendAction(961, 2774,
+						Inventory.getItems(scrolls)[s].getSlot(), 4521985);
+				Menu.sendAction(961, 2775,
+						Inventory.getItems(scrolls)[s].getSlot(), 4521985);
+				Time.sleep(new SleepCondition() {
+					@Override
+					public boolean isValid() {
+						return Inventory.getCount(scrolls) == 0;
+					}
+				}, 1250);
 			}
 		}
 	}
 
-	public class loot implements Strategy {
+	public class Loot implements Strategy {
 		public boolean activate() {
-			for (GroundItem L : GroundItems.getNearest(loot)) {
-				GroundItem l = L;
+			for (GroundItem l : GroundItems.getNearest(loot)) {
 				return l != null;
 			}
 			return false;
@@ -64,44 +68,65 @@ public class BSCrabber extends Script {
 
 		public void execute() {
 			for (GroundItem L : GroundItems.getNearest(loot)) {
-				GroundItem l = L;
-				if (l != null && !Inventory.isFull()) {
+				final GroundItem l = L;
+				if (l != null && !Inventory.isFull() && l.distanceTo() < 10) {
 					l.interact(0);
-					Time.sleep(1500);
+					Time.sleep(new SleepCondition() {
+						@Override
+						public boolean isValid() {
+							return l == null;
+						}
+					}, 1000);
 				}
 			}
 		}
 	}
 
-	public class eat implements Strategy {
+	// --BEGIN--written by Paradox
+	public class Eat implements Strategy {
+
 		public boolean activate() {
-			return food != null;
+			return food != null && Players.getMyPlayer().getHealth() < 50;
 		}
 
 		public void execute() {
-			for (final Item f : Inventory.getItems(food)) {
-				while (f != null && Players.getMyPlayer().getHealth() < 50)
-					Menu.sendAction(961, 385, f.getSlot(), 4521985);
-				Time.sleep(2000);
+			for (int i = 0; i < Inventory.getItems(food).length
+					&& Players.getMyPlayer().getHealth() < 50; i++) {
+				final int health = Players.getMyPlayer().getHealth();
+				Menu.sendAction(961, 385,
+						Inventory.getItems(food)[i].getSlot(), 4521985);
+				Time.sleep(new SleepCondition() {
+					@Override
+					public boolean isValid() {
+						return Players.getMyPlayer().getHealth() > health;
+					}
+				}, 2000);
 			}
 		}
 	}
 
-	public class attack implements Strategy {
+	// --END--written by Paradox
+
+	public class Attack implements Strategy {
 		public boolean activate() {
 			final Npc[] C = Npcs.getNearest(Crabs);
 			Npc C1 = null;
 			C1 = C[1];
-			return C1 != null && !Players.getMyPlayer().isInCombat()
-					&& Players.getMyPlayer().getAnimation() == -1;
+			return C1 != null && !Players.getMyPlayer().isInCombat();
 		}
 
 		public void execute() {
 			final Npc[] C = Npcs.getNearest(Crabs);
-			Npc C1 = C[1];
+			final Npc C1 = C[1];
 			if (C1 != null && !C1.isInCombat()) {
 				C1.interact(1);
-				Time.sleep(2250);
+				Time.sleep(new SleepCondition() {
+					@Override
+					public boolean isValid() {
+						return C1.isInCombat()
+								&& Players.getMyPlayer().isInCombat();
+					}
+				}, 2000);
 			}
 		}
 	}
