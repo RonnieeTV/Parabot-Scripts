@@ -11,7 +11,7 @@ import org.rev377.min.api.wrappers.GroundItem;
 import org.rev377.min.api.wrappers.Item;
 import org.rev377.min.api.wrappers.Npc;
 
-@ScriptManifest(author = "Tommyb603", category = Category.COMBAT, description = "Kills Crabs on Battlescape", name = "BSCrabber", servers = { "377 only" }, version = 0.3)
+@ScriptManifest(author = "Tommyb603", category = Category.COMBAT, description = "Kills Crabs on Battlescape", name = "BSCrabber", servers = { "377 only" }, version = 0.5)
 public class BSCrabber extends Script {
 
 	private final int[] Crabs = { 1265 };
