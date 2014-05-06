@@ -11,7 +11,7 @@ import org.rev377.min.api.wrappers.GroundItem;
 import org.rev377.min.api.wrappers.Item;
 import org.rev377.min.api.wrappers.Npc;
 
-@ScriptManifest(author = "Tommyb603", category = Category.COMBAT, description = "Kills Crabs on Battlescape", name = "BSCrabber", servers = { "377 only" }, version = 0.5)
+@ScriptManifest(author = "Tommyb603", category = Category.COMBAT, description = "Kills Crabs on Battlescape", name = "BSCrabber", servers = { "377 only" }, version = 0.6)
 public class BSCrabber extends Script {
 
 	private final int[] Crabs = { 1265 };
@@ -76,7 +76,7 @@ public class BSCrabber extends Script {
 						public boolean isValid() {
 							return l == null;
 						}
-					}, 1000);
+					}, 4500);
 				}
 			}
 		}
@@ -119,15 +119,22 @@ public class BSCrabber extends Script {
 			final Npc[] C = Npcs.getNearest(Crabs);
 			final Npc C1 = C[1];
 			if (C1 != null && !C1.isInCombat()) {
-				C1.interact(1);
-				Time.sleep(new SleepCondition() {
-					@Override
-					public boolean isValid() {
-						return C1.isInCombat()
-								&& Players.getMyPlayer().isInCombat();
-					}
-				}, 2000);
+				try {
+					C1.interact(1);
+				} catch (NullPointerException e) {
+					sleep(250);
+				} finally {
+					C1.interact(1);
+				}
+				
+					Time.sleep(new SleepCondition() {
+						@Override
+						public boolean isValid() {
+							return C1.isInCombat()
+									&& Players.getMyPlayer().isInCombat();
+						}
+					}, 2000);
+				}
 			}
 		}
 	}
-}
