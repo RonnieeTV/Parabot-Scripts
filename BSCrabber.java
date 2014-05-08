@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 
+import org.parabot.environment.api.utils.Filter;
 import org.parabot.environment.api.utils.Time;
 import org.parabot.environment.scripts.Category;
 import org.parabot.environment.scripts.Script;
@@ -10,14 +11,17 @@ import org.rev377.min.api.methods.*;
 import org.rev377.min.api.wrappers.GroundItem;
 import org.rev377.min.api.wrappers.Item;
 import org.rev377.min.api.wrappers.Npc;
+import org.rev377.min.api.wrappers.Player;
 
-@ScriptManifest(author = "Tommyb603", category = Category.COMBAT, description = "Kills Crabs on Battlescape", name = "BSCrabber", servers = { "377 only" }, version = 0.6)
+@ScriptManifest(author = "Tommyb603", category = Category.COMBAT, description = "Kills Crabs on Battlescape", name = "BSCrabber", servers = { "377 only" }, version = 0.7)
 public class BSCrabber extends Script {
 
-	private final int[] Crabs = { 1265 };
-	private final int[] food = { 386 };
-	private final int[] loot = { 995, 2773, 2774, 2775 };
-	private final int[] scrolls = { 2774, 2774, 2775 };
+	private final int COINS = 995, SCROLL1 = 2773, SCROLL2 = 2774,
+			SCROLL3 = 2775, SHARK = 386, ROCKCRAB = 1265;
+	private final int Crabs = ROCKCRAB;
+	private final int[] Food = { SHARK };
+	private final int[] Loot = { COINS, SCROLL1, SCROLL2, SCROLL3 };
+	private final int[] Scrolls = { SCROLL1, SCROLL2, SCROLL3 };
 
 	private final ArrayList<Strategy> strategy = new ArrayList<Strategy>();
 
@@ -34,24 +38,24 @@ public class BSCrabber extends Script {
 
 	public class clickScroll implements Strategy {
 		public boolean activate() {
-			for (Item s : Inventory.getItems(scrolls)) {
+			for (Item s : Inventory.getItems(Scrolls)) {
 				return s != null;
 			}
 			return false;
 		}
 
 		public void execute() {
-			for (int s = 0; s < Inventory.getItems(scrolls).length; s++) {
+			for (int i = 0; i < Inventory.getItems(Scrolls).length; i++) {
 				Menu.sendAction(961, 2773,
-						Inventory.getItems(scrolls)[s].getSlot(), 4521985);
+						Inventory.getItems(Scrolls)[i].getSlot(), 4521985);
 				Menu.sendAction(961, 2774,
-						Inventory.getItems(scrolls)[s].getSlot(), 4521985);
+						Inventory.getItems(Scrolls)[i].getSlot(), 4521985);
 				Menu.sendAction(961, 2775,
-						Inventory.getItems(scrolls)[s].getSlot(), 4521985);
+						Inventory.getItems(Scrolls)[i].getSlot(), 4521985);
 				Time.sleep(new SleepCondition() {
 					@Override
 					public boolean isValid() {
-						return Inventory.getCount(scrolls) == 0;
+						return Inventory.getCount(Scrolls) == 0;
 					}
 				}, 1250);
 			}
@@ -60,16 +64,16 @@ public class BSCrabber extends Script {
 
 	public class Loot implements Strategy {
 		public boolean activate() {
-			for (GroundItem l : GroundItems.getNearest(loot)) {
+			for (GroundItem l : GroundItems.getNearest(Loot)) {
 				return l != null;
 			}
 			return false;
 		}
 
 		public void execute() {
-			for (GroundItem L : GroundItems.getNearest(loot)) {
+			for (GroundItem L : GroundItems.getNearest(Loot)) {
 				final GroundItem l = L;
-				if (l != null && !Inventory.isFull() && l.distanceTo() < 10) {
+				if (l != null && !Inventory.isFull() && l.distanceTo() < 18) {
 					l.interact(0);
 					Time.sleep(new SleepCondition() {
 						@Override
@@ -86,19 +90,18 @@ public class BSCrabber extends Script {
 	public class Eat implements Strategy {
 
 		public boolean activate() {
-			return food != null && Players.getMyPlayer().getHealth() < 50;
+			return Food != null && Players.getMyPlayer().getHealth() < 50;
 		}
 
 		public void execute() {
-			for (int i = 0; i < Inventory.getItems(food).length
+			for (int i = 0; i < Inventory.getItems(Food).length
 					&& Players.getMyPlayer().getHealth() < 50; i++) {
-				final int health = Players.getMyPlayer().getHealth();
 				Menu.sendAction(961, 385,
-						Inventory.getItems(food)[i].getSlot(), 4521985);
+						Inventory.getItems(Food)[i].getSlot(), 4521985);
 				Time.sleep(new SleepCondition() {
 					@Override
 					public boolean isValid() {
-						return Players.getMyPlayer().getHealth() > health;
+						return Players.getMyPlayer().getHealth() > 50;
 					}
 				}, 2000);
 			}
@@ -107,34 +110,38 @@ public class BSCrabber extends Script {
 
 	// --END--written by Paradox
 
+	public Npc getNextNPC() {
+		Npc[] npc = Npcs.getNearest(new Filter<Npc>() {
+
+			public boolean accept(Npc npc) {
+				return npc.getDef().getId() == Crabs;
+			}
+		});
+		return npc.length > 0 ? npc[0] : null;
+
+	}
+
 	public class Attack implements Strategy {
 		public boolean activate() {
-			final Npc[] C = Npcs.getNearest(Crabs);
-			Npc C1 = null;
-			C1 = C[1];
-			return C1 != null && !Players.getMyPlayer().isInCombat();
+			Npc npc = getNextNPC();
+			return npc != null;
 		}
 
 		public void execute() {
-			final Npc[] C = Npcs.getNearest(Crabs);
-			final Npc C1 = C[1];
-			if (C1 != null && !C1.isInCombat()) {
-				try {
-					C1.interact(1);
-				} catch (NullPointerException e) {
-					sleep(250);
-				} finally {
-					C1.interact(1);
-				}
-				
-					Time.sleep(new SleepCondition() {
-						@Override
-						public boolean isValid() {
-							return C1.isInCombat()
-									&& Players.getMyPlayer().isInCombat();
-						}
-					}, 2000);
-				}
+			final Player me = Players.getMyPlayer();
+			final Npc npc = getNextNPC();
+			if (npc != null && !npc.isInCombat() && !me.isInCombat()) {
+				npc.interact(1);
+				Camera.moveRandomly();
+				Time.sleep(new SleepCondition() {
+
+					@Override
+					public boolean isValid() {
+						return npc.isInCombat() && me.isInCombat();
+					}
+
+				}, 1500);
 			}
 		}
 	}
+}
