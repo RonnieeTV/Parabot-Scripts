@@ -13,7 +13,7 @@ import org.rev377.min.api.wrappers.Item;
 import org.rev377.min.api.wrappers.Npc;
 import org.rev377.min.api.wrappers.Player;
 
-@ScriptManifest(author = "Tommyb603", category = Category.COMBAT, description = "Kills Crabs on Battlescape", name = "BSCrabber", servers = { "377 only" }, version = 0.7)
+@ScriptManifest(author = "Tommyb603", category = Category.COMBAT, description = "Kills Crabs on Battlescape", name = "BSCrabber", servers = { "377 only" }, version = 0.85)
 public class BSCrabber extends Script {
 
 	private final int COINS = 995, SCROLL1 = 2773, SCROLL2 = 2774,
@@ -107,9 +107,6 @@ public class BSCrabber extends Script {
 			}
 		}
 	}
-
-	// --END--written by Paradox
-
 	public Npc getNextNPC() {
 		Npc[] npc = Npcs.getNearest(new Filter<Npc>() {
 
@@ -123,8 +120,8 @@ public class BSCrabber extends Script {
 
 	public class Attack implements Strategy {
 		public boolean activate() {
-			Npc npc = getNextNPC();
-			return npc != null;
+			Player me = Players.getMyPlayer();
+			return !me.isInCombat();
 		}
 
 		public void execute() {
