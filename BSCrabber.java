@@ -1,12 +1,21 @@
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
+import org.parabot.environment.api.interfaces.Paintable;
 import org.parabot.environment.api.utils.Filter;
 import org.parabot.environment.api.utils.Time;
+import org.parabot.environment.api.utils.Timer;
 import org.parabot.environment.scripts.Category;
 import org.parabot.environment.scripts.Script;
 import org.parabot.environment.scripts.ScriptManifest;
 import org.parabot.environment.scripts.framework.SleepCondition;
 import org.parabot.environment.scripts.framework.Strategy;
+import org.rev377.min.api.methods.Skill;
 import org.rev377.min.api.methods.*;
 import org.rev377.min.api.wrappers.GroundItem;
 import org.rev377.min.api.wrappers.Item;
@@ -16,8 +25,14 @@ import org.rev377.min.api.wrappers.SceneObject;
 import org.rev377.min.api.wrappers.Tile;
 import org.rev377.min.api.wrappers.TilePath;
 
-@ScriptManifest(author = "Tommyb603", category = Category.COMBAT, description = "Kills Crabs on Battlescape", name = "BSCrabber", servers = { "377 only" }, version = 0.85)
-public class BSCrabber extends Script {
+@ScriptManifest(author = "Tommyb603", category = Category.COMBAT, description = "Kills Crabs on Battlescape", name = "BSCrabber", servers = { "377 only" }, version = 0.95)
+public final class BSCrabber extends Script implements Paintable {
+
+	public int StartLVL = 0;
+	public int StartEXP = 0;
+	public int CurrentLVL = 0;
+	public int CurrentEXP = 0;
+	static Timer runTime;
 
 	private final int COINS = 995, SCROLL1 = 2773, SCROLL2 = 2774,
 			SCROLL3 = 2775, SHARK = 386, ROCKCRAB = 1265;
@@ -40,13 +55,22 @@ public class BSCrabber extends Script {
 
 	@Override
 	public boolean onExecute() {
+		StartLVL = Skill.ATTACK.getRealLevel() + Skill.STRENGTH.getRealLevel()
+				+ Skill.DEFENSE.getRealLevel()
+				+ Skill.CONSTITUTION.getRealLevel()
+				+ Skill.RANGE.getRealLevel() + Skill.MAGIC.getRealLevel();
+		runTime = new Timer(0L);
+		StartEXP = Skill.ATTACK.getExperience()
+				+ Skill.STRENGTH.getExperience()
+				+ Skill.DEFENSE.getExperience()
+				+ Skill.CONSTITUTION.getExperience()
+				+ Skill.RANGE.getExperience() + Skill.MAGIC.getExperience();
 		strategy.add(new Attack());
 		strategy.add(new Eat());
 		strategy.add(new Loot());
 		strategy.add(new clickScroll());
 		strategy.add(new toBank());
 		provide(strategy);
-
 		return (true);
 	}
 
@@ -69,14 +93,14 @@ public class BSCrabber extends Script {
 
 				}, 1500);
 				Bank.depositAll();
-				Bank.withdraw(SHARK, 27, 2000);
+				Bank.withdraw(SHARK, 26, 2000);
 			}
 		}
 	}
 
-	//this whole class is going to be re-written thoroughly
-	//it was written like shit and is just suppose to work because
-	//API was acting glitchy 5/10/2014
+	// this whole class is going to be re-written thoroughly
+	// it was written like shit and is just suppose to work because
+	// API was acting glitchy 5/10/2014
 	public class toBank implements Strategy {
 		Tile loc = Players.getMyPlayer().getLocation();
 		Player me = Players.getMyPlayer();
@@ -104,14 +128,17 @@ public class BSCrabber extends Script {
 				Bank.getBankItems();
 				Time.sleep(500);
 				Bank.withdraw(SHARK, 26, 3000);
-				Time.sleep(new SleepCondition () {
+				Time.sleep(500);
+				Time.sleep(new SleepCondition() {
 					@Override
 					public boolean isValid() {
 						return Inventory.getCount(Food) > 1;
 					}
-					
+
 				}, 500);
 				Menu.sendAction(639, 110, 506, 28377091);
+				Time.sleep(500);
+				Menu.sendAction(891, 385, 2, 4521985);
 				Time.sleep(500);
 				Menu.sendAction(891, 385, 2, 4521985);
 				Time.sleep(500);
@@ -123,9 +150,10 @@ public class BSCrabber extends Script {
 			}
 		}
 	}
-	//this whole class is going to be re-written thoroughly
-	//it was written like shit and is just suppose to work because
-	//API was acting glitchy 5/10/2014
+
+	// this whole class is going to be re-written thoroughly
+	// it was written like shit and is just suppose to work because
+	// API was acting glitchy 5/10/2014
 
 	public class clickScroll implements Strategy {
 		public boolean activate() {
@@ -213,9 +241,10 @@ public class BSCrabber extends Script {
 	}
 
 	public class Attack implements Strategy {
+
 		public boolean activate() {
 			Player me = Players.getMyPlayer();
-			return !me.isInCombat();
+			return !me.isInCombat() && Inventory.getCount(Food) != 0;
 		}
 
 		public void execute() {
@@ -236,5 +265,71 @@ public class BSCrabber extends Script {
 				}, 1500);
 			}
 		}
+
+		public String runTime(long i) {
+			DecimalFormat nf = new DecimalFormat("00");
+			long millis = System.currentTimeMillis() - i;
+			long hours = millis / (1000 * 60 * 60);
+			millis -= hours * (1000 * 60 * 60);
+			long minutes = millis / (1000 * 60);
+			millis -= minutes * (1000 * 60);
+			long seconds = millis / 1000;
+			return nf.format(hours) + ":" + nf.format(minutes) + ":"
+					+ nf.format(seconds);
+		}
+	}
+
+	@Override
+	public void paint(Graphics g1) {
+		Graphics2D gr = (Graphics2D) g1;
+
+		CurrentLVL = Skill.ATTACK.getRealLevel()
+				+ Skill.STRENGTH.getRealLevel() + Skill.DEFENSE.getRealLevel()
+				+ Skill.CONSTITUTION.getRealLevel()
+				+ Skill.RANGE.getRealLevel() + Skill.MAGIC.getRealLevel();
+		CurrentLVL -= StartLVL;
+		CurrentEXP = Skill.ATTACK.getExperience()
+				+ Skill.STRENGTH.getExperience()
+				+ Skill.DEFENSE.getExperience()
+				+ Skill.CONSTITUTION.getExperience()
+				+ Skill.RANGE.getExperience() + Skill.MAGIC.getExperience();
+		CurrentEXP -= StartEXP;
+		gr.setColor(Color.WHITE);
+		gr.setFont(new Font("Verdana", 0, 12));
+		gr.drawString("BSCrabber v0.95", 558, 225);
+		gr.drawString("XP Gained: " + CurrentEXP, 558, 265);
+		gr.drawString("Levels Gained: " + CurrentLVL, 558, 285);
+		gr.drawString("", 558, 305);
+		gr.drawString("", 558, 325);
+		gr.drawString("", 558, 345);
+		gr.drawString(
+				"Runtime: "
+						+ String.format(
+								"%02d:%02d:%02d",
+								new Object[] {
+										Long.valueOf(TimeUnit.MILLISECONDS
+												.toHours(runTime
+														.getElapsedTime())),
+										Long.valueOf(TimeUnit.MILLISECONDS
+												.toMinutes(runTime
+														.getElapsedTime())
+												- TimeUnit.HOURS
+														.toMinutes(TimeUnit.MILLISECONDS
+																.toHours(runTime
+																		.getElapsedTime()))),
+										Long.valueOf(TimeUnit.MILLISECONDS
+												.toSeconds(runTime
+														.getElapsedTime())
+												- TimeUnit.MINUTES
+														.toSeconds(TimeUnit.MILLISECONDS
+																.toMinutes(runTime
+																		.getElapsedTime()))) }),
+				558, 405);
+
+		gr.drawRect(555, 211, 183, 248);
+		Graphics2D rect = (Graphics2D) g1;
+		rect.setColor(new Color(0, 0, 0, 120));
+
+		rect.fillRect(555, 211, 183, 248);
 	}
 }
