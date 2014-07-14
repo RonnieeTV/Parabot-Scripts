@@ -26,13 +26,19 @@ import org.rev377.min.api.wrappers.SceneObject;
 import org.rev377.min.api.wrappers.Tile;
 import org.rev377.min.api.wrappers.TilePath;
 
-@ScriptManifest(author = "Tommyb603", category = Category.COMBAT, description = "Kills Crabs on Battlescape", name = "BSCrabber", servers = { "377 only" }, version = 1.1)
+@ScriptManifest(author = "Tommyb603", category = Category.COMBAT, description = "Kills Crabs on Battlescape", name = "BSCrabber", servers = { "377 only" }, version = 1.15)
 public final class BSCrabber extends Script implements Paintable {
 
 	public int StartLVL = 0;
 	public int StartEXP = 0;
 	public int CurrentLVL = 0;
 	public int CurrentEXP = 0;
+	public int itemsLooted = 0;
+	public int scrollsUsed = 0;
+	public int gainedXp = 0;
+	
+	private long timeRan = System.currentTimeMillis();
+	
 	static Timer runTime;
 	boolean waitGUI = true;
 	boolean buryBones = false;
@@ -40,12 +46,17 @@ public final class BSCrabber extends Script implements Paintable {
 
 	private final int COINS = 995, SCROLL1 = 2773, SCROLL2 = 2774,
 			SCROLL3 = 2775, SHARK = 386, ROCKCRAB = 1265, BIGBONES = 532,
-			BONES = 526;
+			BONES = 526, KEY1 = 986, KEY2 = 988, DSPEAR = 1250, DSHILD = 2367,
+			RUNE1 = 561, RUNE2 = 566, JAVS = 831, HERB1 = 3051, HERB2 = 215,
+			HERB3 = 213, HERB4 = 3053, HERB5 = 217, HERB6 = 209, HERB7 = 2487,
+			HERB8 = 219, HERB9 = 21628;
 
 	private final int Crabs = ROCKCRAB;
 	private final int[] Food = { SHARK };
 	private final int[] Bones = { BIGBONES, BONES };
-	private final int[] Loot = { COINS, SCROLL1, SCROLL2, SCROLL3 };
+	private final int[] Loot = { COINS, SCROLL1, SCROLL2, SCROLL3, KEY1, KEY2,
+			RUNE1, RUNE2, DSPEAR, DSHILD, JAVS, HERB1, HERB2, HERB3, HERB4,
+			HERB5, HERB6, HERB7, HERB8, HERB9 };
 	private final int[] Scrolls = { SCROLL1, SCROLL2, SCROLL3 };
 
 	final Tile bank = new Tile(3097, 3496, 0);
@@ -85,33 +96,6 @@ public final class BSCrabber extends Script implements Paintable {
 		strategy.add(new buryBones());
 		provide(strategy);
 		return (true);
-	}
-
-	public class buryBones implements Strategy {
-
-		@Override
-		public boolean activate() {
-			for (Item b : Inventory.getItems(Bones)) {
-				return b != null && buryBones == true;
-			}
-			return false;
-		}
-
-		@Override
-		public void execute() {
-			for (int i = 0; i < Inventory.getItems(Bones).length; i++) {
-				Menu.sendAction(961, 526,
-						Inventory.getItems(Bones)[i].getSlot(), 4521985);
-				Menu.sendAction(961, 532,
-						Inventory.getItems(Bones)[i].getSlot(), 4521985);
-				Time.sleep(new SleepCondition() {
-					@Override
-					public boolean isValid() {
-						return Inventory.getCount(Bones) == 0;
-					}
-				}, 250);
-			}
-		}
 	}
 
 	public class lootBones implements Strategy {
@@ -170,11 +154,16 @@ public final class BSCrabber extends Script implements Paintable {
 		Tile loc = Players.getMyPlayer().getLocation();
 		Player me = Players.getMyPlayer();
 		SceneObject[] i = SceneObjects.getNearest(34963);
-		Npc[] w = Npcs.getNearest(318);
 
 		public boolean activate() {
-			return Inventory.getCount(Food) == 0 && eatFood == true;
-		}
+			if (eatFood == true && Inventory.getCount(Food) == 0) {
+				return true;
+			} else
+				if (Inventory.isFull() && eatFood == false) {
+			return true;
+		} else
+		return false;
+	}
 
 		public void execute() {
 			TilePath exit = new TilePath(ToBank);
@@ -203,13 +192,11 @@ public final class BSCrabber extends Script implements Paintable {
 				}, 500);
 				Menu.sendAction(639, 110, 506, 28377091);
 				Time.sleep(500);
-				Menu.sendAction(891, 385, 2, 4521985);
+				Menu.sendAction(891, 385, 1, 4521985);
 				Time.sleep(500);
 				Menu.sendAction(891, 385, 2, 4521985);
 				Time.sleep(500);
-				Menu.sendAction(891, 385, 2, 4521985);
-				Time.sleep(500);
-				Menu.sendAction(891, 385, 2, 4521985);
+				Menu.sendAction(891, 385, 3, 4521985);
 				Time.sleep(500);
 				Menu.sendAction(318, 1816, 0, 0);
 				Time.sleep(4500);
@@ -240,10 +227,39 @@ public final class BSCrabber extends Script implements Paintable {
 						Inventory.getItems(Scrolls)[i].getSlot(), 4521985);
 				Menu.sendAction(961, 2775,
 						Inventory.getItems(Scrolls)[i].getSlot(), 4521985);
+				scrollsUsed++;
 				Time.sleep(new SleepCondition() {
 					@Override
 					public boolean isValid() {
 						return Inventory.getCount(Scrolls) == 0;
+					}
+				}, 250);
+			}
+		}
+	}
+
+	public class buryBones implements Strategy {
+
+		@Override
+		public boolean activate() {
+			for (Item b : Inventory.getItems(Bones)) {
+				return b != null && Inventory.getCount(Bones) > 5
+						&& buryBones == true;
+			}
+			return false;
+		}
+
+		@Override
+		public void execute() {
+			for (int i = 0; i < Inventory.getItems(Bones).length; i++) {
+				Menu.sendAction(961, 526,
+						Inventory.getItems(Bones)[i].getSlot(), 4521985);
+				Menu.sendAction(961, 532,
+						Inventory.getItems(Bones)[i].getSlot(), 4521985);
+				Time.sleep(new SleepCondition() {
+					@Override
+					public boolean isValid() {
+						return Inventory.getCount(Bones) == 0;
 					}
 				}, 250);
 			}
@@ -263,6 +279,7 @@ public final class BSCrabber extends Script implements Paintable {
 				final GroundItem l = L;
 				if (!Inventory.isFull() && l.distanceTo() < 18) {
 					l.interact(0);
+					itemsLooted++;
 					Time.sleep(new SleepCondition() {
 						@Override
 						public boolean isValid() {
@@ -352,6 +369,10 @@ public final class BSCrabber extends Script implements Paintable {
 	public class BSCrabberGUI extends javax.swing.JFrame {
 
 		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+		/**
 		 * Creates new form BSCrabberGUI
 		 */
 		public BSCrabberGUI() {
@@ -363,7 +384,7 @@ public final class BSCrabber extends Script implements Paintable {
 		 * form. WARNING: Do NOT modify this code. The content of this method is
 		 * always regenerated by the Form Editor.
 		 */
-		@SuppressWarnings("unchecked")
+		@SuppressWarnings({ "unchecked", "rawtypes" })
 		// <editor-fold defaultstate="collapsed" desc="Generated Code">
 		private void initComponents() {
 
@@ -545,6 +566,7 @@ public final class BSCrabber extends Script implements Paintable {
 			if (eatFood.getSelectedItem().toString().equals("Yes")) {
 				BSCrabber.this.eatFood = true;
 			}
+			BSCrabber.this.eatFood = false;
 			waitGUI = true;
 		}
 
@@ -552,11 +574,14 @@ public final class BSCrabber extends Script implements Paintable {
 			if (buryBones.getSelectedItem().equals("Yes")) {
 				BSCrabber.this.buryBones = true;
 			}
+			BSCrabber.this.buryBones = false;
 			waitGUI = true;
 		}
 
 		// Variables declaration - do not modify
+		@SuppressWarnings("rawtypes")
 		private javax.swing.JComboBox buryBones;
+		@SuppressWarnings("rawtypes")
 		private javax.swing.JComboBox eatFood;
 		private javax.swing.JLabel jLabel1;
 		private javax.swing.JLabel jLabel2;
@@ -569,7 +594,8 @@ public final class BSCrabber extends Script implements Paintable {
 	@Override
 	public void paint(Graphics g1) {
 		Graphics2D gr = (Graphics2D) g1;
-
+		long xpPerHour = (long)(gainedXp * 3600000 / timeRan);
+		
 		CurrentLVL = Skill.ATTACK.getRealLevel()
 				+ Skill.STRENGTH.getRealLevel() + Skill.DEFENSE.getRealLevel()
 				+ Skill.CONSTITUTION.getRealLevel()
@@ -583,12 +609,12 @@ public final class BSCrabber extends Script implements Paintable {
 		CurrentEXP -= StartEXP;
 		gr.setColor(Color.WHITE);
 		gr.setFont(new Font("Verdana", 0, 12));
-		gr.drawString("BSCrabber v1.0", 558, 225);
+		gr.drawString("BSCrabber v1.15", 558, 225);
 		gr.drawString("by Tommyb603", 558, 240);
-		gr.drawString("XP Gained: " + CurrentEXP, 558, 265);
+		gr.drawString("XP Gained: " + CurrentEXP , 558, 265);
 		gr.drawString("Levels Gained: " + CurrentLVL, 558, 285);
-		gr.drawString("", 558, 305);
-		gr.drawString("", 558, 325);
+		gr.drawString("Loot Attempts: " + itemsLooted, 558, 305);
+		gr.drawString("Scrolls Used: " + scrollsUsed, 558, 325);
 		gr.drawString("", 558, 345);
 		gr.drawString(
 				"Runtime: "
